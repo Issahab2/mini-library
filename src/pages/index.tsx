@@ -1,5 +1,9 @@
-import Image from "next/image";
+import { PublicLayout } from "@/components/layout/PublicLayout";
+import { CTAButton, SecondaryButton } from "@/components/ui/button-variants";
+import { ArrowRight, BookOpen, Library } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -12,67 +16,86 @@ const geistMono = Geist_Mono({
 });
 
 export default function Home() {
+  const { data: session } = useSession();
+
   return (
-    <div
-      className={`${geistSans.className} ${geistMono.className} flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black`}
-    >
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the index.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs/pages/getting-started?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <PublicLayout>
+      <div
+        className={`${geistSans.className} ${geistMono.className} flex min-h-screen flex-col bg-background font-sans`}
+      >
+        {/* Main Content */}
+        <main className="flex-1">
+          <div className="container mx-auto px-4 py-16">
+            <div className="mx-auto max-w-4xl text-center">
+              <div className="mb-8 flex justify-center">
+                <Library className="size-16 text-primary" />
+              </div>
+              <h1 className="mb-4 text-5xl font-bold tracking-tight">Welcome to Our Library</h1>
+              <p className="mb-8 text-xl text-muted-foreground">
+                Discover, borrow, and explore our vast collection of books. Your next great read is just a click away.
+              </p>
+              <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+                {session ? (
+                  <>
+                    <Link href="/dashboard">
+                      <CTAButton size="lg" className="gap-2">
+                        Go to Dashboard
+                        <ArrowRight className="size-4" />
+                      </CTAButton>
+                    </Link>
+                    <Link href="/books">
+                      <SecondaryButton size="lg" className="gap-2">
+                        <BookOpen className="size-4" />
+                        Browse Books
+                      </SecondaryButton>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/auth/signin">
+                      <CTAButton size="lg">Get Started</CTAButton>
+                    </Link>
+                    <Link href="/books">
+                      <SecondaryButton size="lg" className="gap-2">
+                        <BookOpen className="size-4" />
+                        Browse Books
+                      </SecondaryButton>
+                    </Link>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Features Section */}
+            <div className="mx-auto mt-24 max-w-6xl">
+              <h2 className="mb-12 text-center text-3xl font-bold">Features</h2>
+              <div className="grid gap-8 md:grid-cols-3">
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <BookOpen className="mb-4 size-8 text-primary" />
+                  <h3 className="mb-2 text-xl font-semibold">Browse Collection</h3>
+                  <p className="text-muted-foreground">
+                    Explore our extensive library of books across various genres and topics.
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <Library className="mb-4 size-8 text-primary" />
+                  <h3 className="mb-2 text-xl font-semibold">Easy Checkout</h3>
+                  <p className="text-muted-foreground">
+                    Borrow books with ease and manage your checkouts from your dashboard.
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <ArrowRight className="mb-4 size-8 text-primary" />
+                  <h3 className="mb-2 text-xl font-semibold">Quick Returns</h3>
+                  <p className="text-muted-foreground">
+                    Return books quickly and track your reading history all in one place.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </PublicLayout>
   );
 }
