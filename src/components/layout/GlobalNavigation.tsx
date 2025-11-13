@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { CTAButton, SecondaryButton } from "@/components/ui/button-variants";
-import { BookOpen, LayoutDashboard, Library, LogOut, Moon, Sun, User, Menu, X } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { BookOpen, LayoutDashboard, Library, LogOut, Menu, Moon, Shield, Sun, User, X } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
@@ -14,6 +15,7 @@ export function GlobalNavigation() {
   const [mounted, setMounted] = React.useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
+  const { isStaff } = useAuth();
   // Avoid hydration mismatch
   React.useEffect(() => {
     setMounted(true);
@@ -49,13 +51,13 @@ export function GlobalNavigation() {
         <nav className="hidden md:flex items-center gap-2">
           {/* Public Links */}
           <Link href="/books">
-            <SecondaryButton
-              variant={router.pathname === "/books" || router.pathname.startsWith("/books/") ? "default" : "ghost"}
+            <Button
+              variant={router.pathname === "/books" || router.pathname.startsWith("/books/") ? "outline" : "default"}
             >
               <BookOpen className="mr-2 size-4" />
               <span className="hidden lg:inline">Browse Books</span>
               <span className="lg:hidden">Books</span>
-            </SecondaryButton>
+            </Button>
           </Link>
 
           {/* Authenticated Links */}
@@ -63,12 +65,17 @@ export function GlobalNavigation() {
             <div className="h-9 w-24 animate-pulse rounded bg-muted" />
           ) : session ? (
             <>
+              {isStaff && (
+                <Link href="/admin/dashboard">
+                  <Button variant="ghost">Admin Dashboard</Button>
+                </Link>
+              )}
               <Link href="/dashboard">
-                <SecondaryButton variant={router.pathname.startsWith("/dashboard") ? "default" : "ghost"}>
+                <Button variant={router.pathname.startsWith("/dashboard") ? "default" : "ghost"}>
                   <LayoutDashboard className="mr-2 size-4" />
                   <span className="hidden lg:inline">Dashboard</span>
                   <span className="lg:hidden">Dash</span>
-                </SecondaryButton>
+                </Button>
               </Link>
               <div className="ml-2 flex items-center gap-2 border-l border-border pl-2">
                 <div className="hidden lg:flex items-center gap-2 px-2">
@@ -169,13 +176,13 @@ export function GlobalNavigation() {
           <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
             {/* Public Links */}
             <Link href="/books" className="block" onClick={() => setMobileMenuOpen(false)}>
-              <SecondaryButton
-                variant={router.pathname === "/books" || router.pathname.startsWith("/books/") ? "default" : "ghost"}
+              <Button
+                variant={router.pathname === "/books" || router.pathname.startsWith("/books/") ? "outline" : "default"}
                 className="w-full justify-start"
               >
                 <BookOpen className="mr-2 size-4" />
                 Browse Books
-              </SecondaryButton>
+              </Button>
             </Link>
 
             {/* Authenticated Links */}
@@ -183,14 +190,22 @@ export function GlobalNavigation() {
               <div className="h-9 w-full animate-pulse rounded bg-muted" />
             ) : session ? (
               <>
+                {isStaff && (
+                  <Link href="/admin/dashboard" className="block" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start">
+                      <Shield className="mr-2 size-4" />
+                      Admin Dashboard
+                    </Button>
+                  </Link>
+                )}
                 <Link href="/dashboard" className="block" onClick={() => setMobileMenuOpen(false)}>
-                  <SecondaryButton
+                  <Button
                     variant={router.pathname.startsWith("/dashboard") ? "default" : "ghost"}
                     className="w-full justify-start"
                   >
                     <LayoutDashboard className="mr-2 size-4" />
                     Dashboard
-                  </SecondaryButton>
+                  </Button>
                 </Link>
                 <div className="pt-2 border-t border-border space-y-2">
                   <div className="flex items-center gap-2 px-3 py-2">
