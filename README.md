@@ -544,13 +544,9 @@ Default roles and permissions are created during the seed process.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## License
-
-This project is private and proprietary.
-
 ## Support
 
-For issues and questions, please open an issue in the repository or contact the development team.
+For issues and questions, please open an issue in the repository or contact issahab2@gmail.com.
 
 ---
 
