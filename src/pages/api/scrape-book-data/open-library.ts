@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "../../../lib/server/prisma";
+import { IS_DEVELOPMENT } from "@/lib/server/constants/env";
 
 const OPENLIBRARY_URL = "https://openlibrary.org/api/books";
 
@@ -141,6 +142,12 @@ const get = (obj: any, path: string[], defaultValue: any): any => {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (!IS_DEVELOPMENT) {
+    return res.status(403).json({
+      error: "Forbidden",
+      message: "This endpoint is only available in development mode.",
+    });
+  }
   if (req.method !== "GET") {
     res.setHeader("Allow", ["GET"]);
     return res.status(405).json({ error: `Method ${req.method} Not Allowed` });

@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma, createAuthHandler } from "@/lib/server";
+import { ADMIN_EMAIL } from "@/lib/server/constants/env";
 import { HttpStatusCodes } from "@/lib/server/errors";
 import bcrypt from "bcryptjs";
 import * as z from "zod";
@@ -186,6 +187,28 @@ export default createAuthHandler(
 
     if (req.method === "DELETE") {
       try {
+        // Get user to check if it's the admin user
+        const userToDelete = await prisma.user.findUnique({
+          where: { id: id as string },
+          select: {
+            id: true,
+            email: true,
+          },
+        });
+
+        if (!userToDelete) {
+          return res.status(HttpStatusCodes.NOT_FOUND).json({
+            error: "User not found",
+          });
+        }
+
+        // Prevent deletion of the admin user
+        if (userToDelete.email === ADMIN_EMAIL) {
+          return res.status(HttpStatusCodes.FORBIDDEN).json({
+            error: "Cannot delete the admin user. This account is protected.",
+          });
+        }
+
         // Check if user has active checkouts
         const activeCheckouts = await prisma.checkout.count({
           where: {

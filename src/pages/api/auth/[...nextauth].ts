@@ -1,6 +1,7 @@
 // pages/api/auth/[...nextauth].ts
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, NEXTAUTH_SECRET } from "@/lib/server/constants/env";
 import { prisma } from "@/lib/server/prisma";
+import { ensureCustomerRole } from "@/lib/server/user";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import NextAuth, { AuthOptions } from "next-auth";
@@ -92,27 +93,8 @@ export const authOptions: AuthOptions = {
             });
           }
 
-          // Check if user has any roles, if not assign Customer role
-          const userWithRoles = await prisma.user.findUnique({
-            where: { id: existingUser.id },
-            include: { roles: true },
-          });
-
-          if (!userWithRoles || userWithRoles.roles.length === 0) {
-            // User has no roles, assign Customer role
-            const customerRole = await prisma.role.findUnique({
-              where: { name: "Customer" },
-            });
-
-            if (customerRole) {
-              await prisma.rolesOnUsers.create({
-                data: {
-                  userId: existingUser.id,
-                  roleId: customerRole.id,
-                },
-              });
-            }
-          }
+          // Ensure user has Customer role if no roles are assigned
+          await ensureCustomerRole(existingUser.id);
 
           // Update user info if needed (name, image from Google)
           // Automatically verify email for OAuth sign-ins
@@ -129,6 +111,7 @@ export const authOptions: AuthOptions = {
           user.id = existingUser.id;
         } else {
           // For new users, the adapter will create them
+          // Customer role assignment will happen in the jwt callback after user creation
         }
       }
 
@@ -179,16 +162,8 @@ export const authOptions: AuthOptions = {
 
       // For OAuth providers, fetch user roles on first sign in
       if (account && user) {
-        // Automatically verify email for OAuth sign-ins (new or existing users)
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            emailVerified: new Date(),
-          },
-        });
-
-        // Check if user has any roles, if not assign Customer role (for new OAuth users)
-        const userWithRoles = await prisma.user.findUnique({
+        // Check if user exists and get current state
+        const existingUser = await prisma.user.findUnique({
           where: { id: user.id },
           include: {
             roles: {
@@ -207,70 +182,63 @@ export const authOptions: AuthOptions = {
           },
         });
 
-        // If user has no roles, assign Customer role
-        if (!userWithRoles || userWithRoles.roles.length === 0) {
-          const customerRole = await prisma.role.findUnique({
-            where: { name: "Customer" },
+        // For new OAuth users, ensure they are marked as customers (not staff)
+        // and have the Customer role assigned
+        if (existingUser) {
+          // Automatically verify email for OAuth sign-ins (new or existing users)
+          // Ensure isStaff is false for public OAuth registrations
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              emailVerified: new Date(),
+              isStaff: existingUser.isStaff || false, // Preserve existing isStaff, default to false
+            },
           });
 
-          if (customerRole) {
-            await prisma.rolesOnUsers.create({
-              data: {
-                userId: user.id,
-                roleId: customerRole.id,
-              },
-            });
+          // Ensure user has Customer role if no roles are assigned
+          const roleWasAssigned = await ensureCustomerRole(user.id);
 
-            // Re-fetch user with roles after assignment
-            const updatedUser = await prisma.user.findUnique({
-              where: { id: user.id },
-              include: {
-                roles: {
-                  include: {
-                    role: {
-                      include: {
-                        permissions: {
-                          include: {
-                            permission: true,
+          // Re-fetch user with roles (in case role was just assigned)
+          const userWithRoles = roleWasAssigned
+            ? await prisma.user.findUnique({
+                where: { id: user.id },
+                include: {
+                  roles: {
+                    include: {
+                      role: {
+                        include: {
+                          permissions: {
+                            include: {
+                              permission: true,
+                            },
                           },
                         },
                       },
                     },
                   },
                 },
-              },
-            });
+              })
+            : existingUser;
 
+          if (userWithRoles) {
             const permissions = new Set<string>();
-            updatedUser?.roles.forEach((roleOnUser) => {
+            userWithRoles.roles.forEach((roleOnUser) => {
               roleOnUser.role.permissions.forEach((permOnRole) => {
                 permissions.add(permOnRole.permission.action);
               });
             });
 
             token.permissions = Array.from(permissions);
-            token.roles = updatedUser?.roles.map((r) => r.role.name) || [];
-            token.isStaff = updatedUser?.isStaff || false;
-            token.emailVerified = updatedUser?.emailVerified || null;
+            token.roles = userWithRoles.roles.map((r) => r.role.name) || [];
+            token.isStaff = userWithRoles.isStaff || false;
+            token.emailVerified = userWithRoles.emailVerified || new Date();
           } else {
-            // Customer role not found, set empty permissions
+            // Fallback if user not found
             token.permissions = [];
             token.roles = [];
             token.isStaff = false;
+            token.emailVerified = new Date();
           }
-        } else {
-          // User already has roles, load them
-          const permissions = new Set<string>();
-          userWithRoles.roles.forEach((roleOnUser) => {
-            roleOnUser.role.permissions.forEach((permOnRole) => {
-              permissions.add(permOnRole.permission.action);
-            });
-          });
-
-          token.permissions = Array.from(permissions);
-          token.roles = userWithRoles.roles.map((r) => r.role.name) || [];
-          token.isStaff = userWithRoles.isStaff || false;
-          token.emailVerified = userWithRoles.emailVerified || null;
         }
       }
 

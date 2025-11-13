@@ -1,6 +1,7 @@
 // Server-side utilities
 export { prisma } from "./prisma";
 export { withAuth, createAuthHandler } from "./auth";
+export { ensureCustomerRole } from "./user";
 export { createMethodAuthHandler, type MethodAuthConfig, type MethodAuthContext } from "./method-auth-handler";
 export {
   validateCheckout,

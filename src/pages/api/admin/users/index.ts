@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { prisma, createAuthHandler } from "@/lib/server";
+import { prisma, createAuthHandler, ensureCustomerRole } from "@/lib/server";
 import { HttpStatusCodes } from "@/lib/server/errors";
 import bcrypt from "bcryptjs";
 import * as z from "zod";
@@ -72,6 +72,9 @@ export default createAuthHandler(
             emailVerified: true,
           },
         });
+
+        // Ensure user has Customer role if no roles are assigned
+        await ensureCustomerRole(newUser.id);
 
         return res.status(HttpStatusCodes.CREATED).json({
           message: "User created successfully",
