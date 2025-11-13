@@ -1,13 +1,24 @@
-import * as React from "react";
+import { Button } from "@/components/ui/button";
+import useAuth from "@/hooks/useAuth";
+import { cn } from "@/lib/client/utils";
+import {
+  BookOpen,
+  LayoutDashboard,
+  Library,
+  LogOut,
+  Menu,
+  Moon,
+  Shield,
+  ShoppingCart,
+  Sun,
+  User,
+  X,
+} from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
+import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useSession } from "next-auth/react";
-import { useTheme } from "next-themes";
-import { cn } from "@/lib/client/utils";
-import { BookOpen, LayoutDashboard, Library, LogOut, User, ShoppingCart, Moon, Sun, Menu, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { signOut } from "next-auth/react";
-import useAuth from "@/hooks/useAuth";
+import * as React from "react";
 
 interface CustomerDashboardLayoutProps {
   children: React.ReactNode;
@@ -25,31 +36,16 @@ export function CustomerDashboardLayout({ children }: CustomerDashboardLayoutPro
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
-  const { isStaff, isLoading, isAuthenticated } = useAuth();
-
+  const { isStaff } = useAuth();
   // Avoid hydration mismatch
   React.useEffect(() => {
     setMounted(true);
   }, []);
 
-  React.useEffect(() => {
-    if (isAuthenticated && isStaff && !isLoading && router.pathname === "/dashboard") {
-      router.push("/admin/dashboard");
-    }
-  }, [isStaff, router, isLoading, isAuthenticated]);
-
   // Close mobile menu when route changes
   React.useEffect(() => {
     setMobileMenuOpen(false);
   }, [router.pathname]);
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
-  if (isStaff) {
-    return <div>You are not authorized to access this page</div>;
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -93,10 +89,18 @@ export function CustomerDashboardLayout({ children }: CustomerDashboardLayoutPro
         </div>
         {status === "authenticated" && (
           <div className="pt-4 border-t border-border shrink-0">
-            <div className="flex items-center gap-2 mb-2 px-2">
+            <div className="flex items-center gap-2 mb-2 px-3">
               <User className="size-4" />
               <span className="text-sm font-medium truncate">{session.user?.name || session.user?.email}</span>
             </div>
+            {isStaff && (
+              <Link href="/admin/dashboard">
+                <Button variant="ghost" className="w-full justify-start">
+                  <Shield className="mr-2 size-4" />
+                  Admin Dashboard
+                </Button>
+              </Link>
+            )}
             <Button variant="ghost" className="w-full justify-start" onClick={() => signOut()}>
               <LogOut className="mr-2 size-4" />
               Sign Out
@@ -192,6 +196,14 @@ export function CustomerDashboardLayout({ children }: CustomerDashboardLayoutPro
                 <User className="size-4" />
                 <span className="text-sm font-medium truncate">{session.user?.name || session.user?.email}</span>
               </div>
+              {isStaff && (
+                <Link href="/admin/dashboard">
+                  <Button variant="ghost" className="w-full justify-start">
+                    <Shield className="mr-2 size-4" />
+                    Admin Dashboard
+                  </Button>
+                </Link>
+              )}
               <Button variant="ghost" className="w-full justify-start" onClick={() => signOut()}>
                 <LogOut className="mr-2 size-4" />
                 Sign Out

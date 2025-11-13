@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../node_modules/.prisma/client"
@@ -126,23 +120,19 @@ model PasswordResetToken {
   @@index([userId])
 }
 
-// --- 3. YOUR CUSTOM RBAC MODELS (The Impressive Part) ---
-
 model User {
   id               String    @id @default(cuid())
   name             String?
   email            String?   @unique
   emailVerified    DateTime?
   image            String?
-  password         String? // Hashed password for credentials auth
+  password         String?
   maxCheckoutLimit Int       @default(5)
-  isStaff          Boolean   @default(false) // Flag to distinguish staff from customers
+  isStaff          Boolean   @default(false)
 
-  // Auth.js relations
   accounts Account[]
   sessions Session[]
 
-  // Your custom relations
   checkouts           Checkout[]
   roles               RolesOnUsers[] // A user can have many roles
   passwordResetTokens PasswordResetToken[]
@@ -150,24 +140,20 @@ model User {
 
 model Role {
   id          String  @id @default(cuid())
-  name        String  @unique // e.g., "Admin", "Librarian", "Member"
+  name        String  @unique
   description String?
 
-  // Relations
   users       RolesOnUsers[]
-  permissions PermissionsOnRoles[] // A role has many permissions
+  permissions PermissionsOnRoles[]
 }
 
 model Permission {
   id          String  @id @default(cuid())
-  action      String  @unique // e.g., "book:read", "book:create", "user:manage"
+  action      String  @unique
   description String?
 
-  // Relations
   roles PermissionsOnRoles[]
 }
-
-// --- 4. JOIN TABLES (Many-to-Many) ---
 
 model RolesOnUsers {
   user   User   @relation(fields: [userId], references: [id])
@@ -175,7 +161,7 @@ model RolesOnUsers {
   role   Role   @relation(fields: [roleId], references: [id])
   roleId String
 
-  @@id([userId, roleId]) // Composite primary key
+  @@id([userId, roleId])
 }
 
 model PermissionsOnRoles {
@@ -184,5 +170,5 @@ model PermissionsOnRoles {
   role         Role       @relation(fields: [roleId], references: [id])
   roleId       String
 
-  @@id([permissionId, roleId]) // Composite primary key
+  @@id([permissionId, roleId])
 }

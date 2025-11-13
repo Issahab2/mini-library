@@ -124,6 +124,12 @@ export function AdminDashboardLayout({ children }: AdminDashboardLayoutProps) {
               <User className="size-4" />
               <span className="text-sm font-medium truncate">{session.user?.name || session.user?.email}</span>
             </div>
+            <Link href="/dashboard">
+              <Button variant="ghost" className="w-full justify-start">
+                <LayoutDashboard className="mr-2 size-4" />
+                Customer Dashboard
+              </Button>
+            </Link>
             <div className="space-y-1">
               <Button variant="ghost" className="w-full justify-start" onClick={() => signOut()}>
                 <LogOut className="mr-2 size-4" />
@@ -221,6 +227,12 @@ export function AdminDashboardLayout({ children }: AdminDashboardLayoutProps) {
                 <User className="size-4" />
                 <span className="text-sm font-medium truncate">{session.user?.name || session.user?.email}</span>
               </div>
+              <Link href="/dashboard">
+                <Button variant="ghost" className="w-full justify-start">
+                  <LayoutDashboard className="mr-2 size-4" />
+                  Customer Dashboard
+                </Button>
+              </Link>
               <Button variant="ghost" className="w-full justify-start" onClick={() => signOut()}>
                 <LogOut className="mr-2 size-4" />
                 Sign Out

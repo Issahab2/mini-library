@@ -1,7 +1,7 @@
+import { EmailVerificationBanner } from "@/components/auth/EmailVerificationBanner";
 import { CheckoutCard } from "@/components/checkouts/CheckoutCard";
 import { CustomerDashboardLayout } from "@/components/layout/CustomerDashboardLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { EmailVerificationBanner } from "@/components/auth/EmailVerificationBanner";
 import { CTAButton } from "@/components/ui/button-variants";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,21 +10,11 @@ import { useBooks } from "@/hooks/useBooks";
 import { useMyCheckouts } from "@/hooks/useCheckouts";
 import type { BookWithRelations, CheckoutWithRelations } from "@/lib/server/types";
 import Link from "next/link";
-import { useRouter } from "next/router";
-import * as React from "react";
 
 export default function DashboardPage() {
-  const router = useRouter();
   const { user, isAuthenticated, isStaff } = useAuth();
   const { data: checkoutsData, isLoading: checkoutsLoading } = useMyCheckouts(1, 5, "active");
   const { data: booksData, isLoading: booksLoading } = useBooks(1, 5);
-
-  // Check if user is staff/admin and redirect to admin dashboard
-  React.useEffect(() => {
-    if (isAuthenticated && isStaff && router.pathname === "/dashboard") {
-      router.push("/admin/dashboard");
-    }
-  }, [isAuthenticated, isStaff, router]);
 
   if (!isAuthenticated) {
     return (

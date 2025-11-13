@@ -6,6 +6,7 @@ import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { useRouter } from "next/router";
+import { Analytics } from "@vercel/analytics/next";
 
 function RouterLoadingBar() {
   const router = useRouter();
@@ -61,6 +62,7 @@ export default function App({ Component, pageProps }: AppProps) {
           <Component {...pageProps} />
           <Toaster />
           <RouterLoadingBar />
+          <Analytics />
         </QueryClientProvider>
       </SessionProvider>
     </ThemeProvider>
