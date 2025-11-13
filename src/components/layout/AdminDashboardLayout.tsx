@@ -131,7 +131,7 @@ export function AdminDashboardLayout({ children }: AdminDashboardLayoutProps) {
               </Button>
             </Link>
             <div className="space-y-1">
-              <Button variant="ghost" className="w-full justify-start" onClick={() => signOut()}>
+              <Button variant="ghost" className="w-full justify-start" onClick={() => signOut({ callbackUrl: "/" })}>
                 <LogOut className="mr-2 size-4" />
                 Sign Out
               </Button>
@@ -233,7 +233,7 @@ export function AdminDashboardLayout({ children }: AdminDashboardLayoutProps) {
                   Customer Dashboard
                 </Button>
               </Link>
-              <Button variant="ghost" className="w-full justify-start" onClick={() => signOut()}>
+              <Button variant="ghost" className="w-full justify-start" onClick={() => signOut({ callbackUrl: "/" })}>
                 <LogOut className="mr-2 size-4" />
                 Sign Out
               </Button>

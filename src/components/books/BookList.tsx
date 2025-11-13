@@ -2,6 +2,7 @@ import * as React from "react";
 import { BookCard } from "./BookCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { BookWithRelations } from "@/lib/server/types";
+import useAuth from "@/hooks/useAuth";
 
 interface BookListProps {
   books: BookWithRelations[];
@@ -11,7 +12,15 @@ interface BookListProps {
   canCheckout?: boolean;
 }
 
-export function BookList({ books, onCheckout, isLoading = false, showActions = true, canCheckout = false }: BookListProps) {
+export function BookList({
+  books,
+  onCheckout,
+  isLoading = false,
+  showActions = true,
+  canCheckout = false,
+}: BookListProps) {
+  const { isAuthenticated } = useAuth();
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -37,9 +46,15 @@ export function BookList({ books, onCheckout, isLoading = false, showActions = t
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {books.map((book) => (
-        <BookCard key={book.id} book={book} onCheckout={onCheckout} showActions={showActions} canCheckout={canCheckout} />
+        <BookCard
+          authenticated={isAuthenticated}
+          key={book.id}
+          book={book}
+          onCheckout={onCheckout}
+          showActions={showActions}
+          canCheckout={canCheckout}
+        />
       ))}
     </div>
   );
 }
-

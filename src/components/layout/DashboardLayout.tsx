@@ -84,7 +84,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <User className="size-4" />
                 <span className="text-sm font-medium">{session.user?.name || session.user?.email}</span>
               </div>
-              <Button variant="ghost" className="w-full justify-start" onClick={() => signOut()}>
+              <Button variant="ghost" className="w-full justify-start" onClick={() => signOut({ callbackUrl: "/" })}>
                 <LogOut className="mr-2 size-4" />
                 Sign Out
               </Button>

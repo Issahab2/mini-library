@@ -217,7 +217,7 @@ export function GlobalNavigation() {
                   <Button
                     variant="ghost"
                     onClick={() => {
-                      signOut();
+                      signOut({ callbackUrl: "/" });
                       setMobileMenuOpen(false);
                     }}
                     className="w-full justify-start"

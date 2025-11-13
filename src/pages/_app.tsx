@@ -1,13 +1,18 @@
+import { Toaster } from "@/components/ui/sonner";
 import "@/styles/globals.css";
-import type { AppProps } from "next/app";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { Analytics } from "@vercel/analytics/next";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
-import { Toaster } from "@/components/ui/sonner";
+import type { AppProps } from "next/app";
+import { Montserrat } from "next/font/google";
 import { useRouter } from "next/router";
-import { Analytics } from "@vercel/analytics/next";
+import { useEffect, useState } from "react";
 
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  variable: "--font-montserrat",
+});
 function RouterLoadingBar() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -56,15 +61,17 @@ export default function App({ Component, pageProps }: AppProps) {
   );
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-      <SessionProvider session={pageProps.session} refetchInterval={5 * 60} refetchOnWindowFocus={true}>
-        <QueryClientProvider client={queryClient}>
-          <Component {...pageProps} />
-          <Toaster />
-          <RouterLoadingBar />
-          <Analytics />
-        </QueryClientProvider>
-      </SessionProvider>
-    </ThemeProvider>
+    <div className={`${montserrat.className}`}>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+        <SessionProvider session={pageProps.session} refetchInterval={5 * 60} refetchOnWindowFocus={true}>
+          <QueryClientProvider client={queryClient}>
+            <Component {...pageProps} />
+            <Toaster />
+            <RouterLoadingBar />
+            <Analytics />
+          </QueryClientProvider>
+        </SessionProvider>
+      </ThemeProvider>
+    </div>
   );
 }

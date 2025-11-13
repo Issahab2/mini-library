@@ -1,12 +1,12 @@
-import * as React from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CTAButton, SecondaryButton } from "@/components/ui/button-variants";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import type { BookWithRelations } from "@/lib/server/types";
 import { BookStatus } from "@prisma/client";
+import { BookOpen } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen } from "lucide-react";
-import type { BookWithRelations } from "@/lib/server/types";
+import * as React from "react";
 
 interface BookCardProps {
   book: BookWithRelations;
@@ -14,6 +14,7 @@ interface BookCardProps {
   showActions?: boolean;
   isCheckedOut?: boolean;
   canCheckout?: boolean;
+  authenticated?: boolean;
 }
 
 // Default book cover component
@@ -37,7 +38,14 @@ function DefaultBookCover({ title, author }: { title: string; author?: string })
   );
 }
 
-export function BookCard({ book, onCheckout, showActions = true, isCheckedOut, canCheckout = false }: BookCardProps) {
+export function BookCard({
+  book,
+  onCheckout,
+  showActions = true,
+  isCheckedOut,
+  canCheckout = false,
+  authenticated = true,
+}: BookCardProps) {
   const status = book.status || (isCheckedOut ? BookStatus.CHECKED_OUT : BookStatus.AVAILABLE);
   const [imageError, setImageError] = React.useState(false);
 
@@ -131,17 +139,24 @@ export function BookCard({ book, onCheckout, showActions = true, isCheckedOut, c
       </CardContent>
 
       {showActions && (
-        <CardFooter className="flex flex-col sm:flex-row gap-2 mt-auto pt-4 shrink-0">
+        <CardFooter className="flex flex-col sm:flex-row gap-2 mt-auto pt-4 shrink-0 flex-wrap">
           <Link href={`/books/${book.id}`} className="w-full sm:flex-1">
             <SecondaryButton className="w-full text-sm sm:text-base">View Details</SecondaryButton>
           </Link>
-          {status === BookStatus.AVAILABLE && onCheckout && canCheckout ? (
-            <CTAButton onClick={() => onCheckout(book.id)} className="w-full sm:flex-1 text-sm sm:text-base">
-              Checkout
+          {!authenticated ? (
+            <Link
+              className="w-full sm:flex-1"
+              href={`/auth/signin?callbackUrl=${encodeURIComponent(`/books/${book.id}`)}`}
+            >
+              <CTAButton className="w-full text-sm sm:text-base">Sign in to checkout</CTAButton>
+            </Link>
+          ) : status === BookStatus.AVAILABLE && onCheckout && canCheckout ? (
+            <CTAButton onClick={() => onCheckout(book.id)} className="w-full text-sm sm:text-base">
+              Borrow Book
             </CTAButton>
           ) : (
-            <CTAButton disabled className="w-full sm:flex-1 text-sm sm:text-base">
-              Unavailable
+            <CTAButton disabled className="w-full text-sm sm:text-base">
+              Borrowed
             </CTAButton>
           )}
         </CardFooter>

@@ -101,7 +101,7 @@ export function CustomerDashboardLayout({ children }: CustomerDashboardLayoutPro
                 </Button>
               </Link>
             )}
-            <Button variant="ghost" className="w-full justify-start" onClick={() => signOut()}>
+            <Button variant="ghost" className="w-full justify-start" onClick={() => signOut({ callbackUrl: "/" })}>
               <LogOut className="mr-2 size-4" />
               Sign Out
             </Button>
@@ -176,7 +176,7 @@ export function CustomerDashboardLayout({ children }: CustomerDashboardLayoutPro
           <nav className="flex-1 overflow-y-auto p-4 space-y-1">
             {customerNavigation.map((item) => {
               const Icon = item.icon;
-              const isActive = router.pathname === item.href || router.pathname.startsWith(item.href + "/");
+              const isActive = router.pathname === item.href.split("?")[0];
               return (
                 <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)}>
                   <Button
@@ -204,7 +204,7 @@ export function CustomerDashboardLayout({ children }: CustomerDashboardLayoutPro
                   </Button>
                 </Link>
               )}
-              <Button variant="ghost" className="w-full justify-start" onClick={() => signOut()}>
+              <Button variant="ghost" className="w-full justify-start" onClick={() => signOut({ callbackUrl: "/" })}>
                 <LogOut className="mr-2 size-4" />
                 Sign Out
               </Button>

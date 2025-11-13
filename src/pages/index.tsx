@@ -6,19 +6,8 @@ import { useBooks } from "@/hooks/useBooks";
 import { useCheckoutBook } from "@/hooks/useCheckouts";
 import { ArrowRight, BookOpen, Library } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { toast } from "sonner";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export default function Home() {
   const { data: session } = useSession();
@@ -50,7 +39,7 @@ export default function Home() {
 
   return (
     <PublicLayout>
-      <div className={`${geistSans.className} ${geistMono.className} flex flex-col font-sans bg-background`}>
+      <div className="flex flex-col font-sans bg-background">
         {/* Main Content */}
         <section className="flex-1">
           <div className="container mx-auto px-4 pt-16 pb-8">
