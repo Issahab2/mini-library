@@ -2,7 +2,6 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma, createAuthHandler } from "@/lib/server";
 import { HttpStatusCodes } from "@/lib/server/errors";
 import { sendStaffInvitationEmail, sendWelcomeEmail, sendVerificationEmail } from "@/lib/server/email";
-import { APP_URL } from "@/lib/server/constants/env";
 import bcrypt from "bcryptjs";
 import * as z from "zod";
 import crypto from "crypto";
@@ -131,7 +130,6 @@ export default createAuthHandler(
           name: newUser.name || "Staff Member",
           role: role,
           password: password, // Send plain password for first login
-          invitationLink: `${APP_URL}/auth/signin`,
         }),
         sendVerificationEmail({
           email: newUser.email!,
