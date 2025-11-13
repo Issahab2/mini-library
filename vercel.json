@@ -1,5 +1,5 @@
 {
-  "buildCommand": "prisma generate && prisma migrate deploy && next build",
+  "buildCommand": "prisma generate && prisma migrate deploy && next build && npx prisma db seed",
   "installCommand": "npm install",
   "framework": "nextjs",
   "regions": ["dub1"],
