@@ -13,6 +13,7 @@ export default function AdminCheckoutsPage() {
   const { hasPermission } = useAuth();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<"all" | "active" | "returned" | "overdue">("all");
+  const [returningCheckoutId, setReturningCheckoutId] = useState<string | null>(null);
 
   const { data, isLoading } = useCheckouts(page, 20, status);
   const returnMutation = useReturnBook();
@@ -28,11 +29,14 @@ export default function AdminCheckoutsPage() {
   }
 
   const handleReturn = async (checkoutId: string) => {
+    setReturningCheckoutId(checkoutId);
     try {
       await returnMutation.mutateAsync(checkoutId);
       toast.success("Book returned successfully!");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to return book");
+    } finally {
+      setReturningCheckoutId(null);
     }
   };
 
@@ -61,6 +65,7 @@ export default function AdminCheckoutsPage() {
         isLoading={isLoading}
         showUser={true}
         canReturn={true}
+        returningCheckoutId={returningCheckoutId}
       />
       {data?.pagination && (
         <Pagination
@@ -73,4 +78,3 @@ export default function AdminCheckoutsPage() {
     </AdminDashboardLayout>
   );
 }
-

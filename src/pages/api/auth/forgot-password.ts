@@ -1,8 +1,10 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "@/lib/server/prisma";
+import { APP_URL, IS_DEVELOPMENT } from "@/lib/server/constants/env";
 import { HttpStatusCodes } from "@/lib/server/errors";
-import * as z from "zod";
+import { sendPasswordResetEmail } from "@/lib/server/email";
+import { prisma } from "@/lib/server/prisma";
 import crypto from "crypto";
+import type { NextApiRequest, NextApiResponse } from "next";
+import * as z from "zod";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -59,23 +61,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    // In a real application, you would send an email here
-    // For now, we'll return the token in development (remove in production!)
-    const resetUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/auth/reset-password?token=${resetToken}`;
+    const resetUrl = `${APP_URL}/auth/reset-password?token=${resetToken}`;
 
-    // TODO: Send email with reset link
-    // await sendPasswordResetEmail(user.email, resetUrl);
+    // Send password reset email
+    const emailResult = await sendPasswordResetEmail({
+      email: user.email!,
+      name: user.name,
+      resetUrl,
+    });
 
-    // In development, log the reset URL (remove in production!)
-    if (process.env.NODE_ENV === "development") {
-      console.log("Password reset URL:", resetUrl);
+    // In development, log the reset URL if email service is not available
+    if (IS_DEVELOPMENT) {
+      if (!emailResult.success) {
+        console.warn("Email service unavailable. Password reset URL:", resetUrl);
+      } else {
+        console.log("Password reset email sent successfully");
+      }
     }
 
-    return res.status(HttpStatusCodes.OK).json({
+    // If email failed but we're in development, still return the URL
+    const response: { message: string; resetUrl?: string } = {
       message: "If an account with that email exists, a password reset link has been sent.",
-      // Only include in development
-      ...(process.env.NODE_ENV === "development" && { resetUrl }),
-    });
+    };
+
+    // Only include resetUrl in development if email service is unavailable
+    if (IS_DEVELOPMENT && !emailResult.success) {
+      response.resetUrl = resetUrl;
+    }
+
+    return res.status(HttpStatusCodes.OK).json(response);
   } catch (error) {
     console.error("Forgot password error:", error);
     return res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({

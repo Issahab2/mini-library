@@ -19,7 +19,7 @@ export default function BooksPage() {
 
   const { isAuthenticated, hasPermission } = useAuth();
   const { data: booksData, isLoading: booksLoading } = useBooks(page, 20);
-  const { data: searchData, isLoading: searchLoading } = useBookSearch(filters, page, 20);
+  const { data: searchData, isLoading: searchLoading } = useBookSearch(filters, page, 20, useSearch);
 
   const checkoutMutation = useCheckoutBook();
 
@@ -53,20 +53,32 @@ export default function BooksPage() {
 
   const handleFiltersChange = (newFilters: BookSearchFilters) => {
     setFilters(newFilters);
-    setUseSearch(Object.keys(newFilters).length > 0);
+    // Reset search mode if filters are cleared
+    const hasFilters = Object.keys(newFilters).some((key) => {
+      const value = newFilters[key as keyof BookSearchFilters];
+      return value !== undefined && value !== null && value !== "";
+    });
+    if (!hasFilters && useSearch) {
+      setUseSearch(false);
+    }
   };
 
   return (
     <PublicLayout>
       <div className="container mx-auto py-6">
-        <PageHeader title="Library Catalog" description="Browse and search our collection of books" />
-        <div className="space-y-6">
-          <BookSearch
-            filters={filters}
-            onFiltersChange={handleFiltersChange}
-            onSearch={handleSearch}
-            isLoading={isLoading}
-          />
+        <PageHeader
+          title="Library Catalog"
+          description="Browse and search our collection of books"
+          actions={
+            <BookSearch
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              onSearch={handleSearch}
+              isLoading={isLoading}
+            />
+          }
+        />
+        <div className="space-y-6 p-4">
           <BookList
             books={books}
             onCheckout={canCheckout ? handleCheckout : undefined}

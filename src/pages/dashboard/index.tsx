@@ -1,6 +1,7 @@
 import { CheckoutCard } from "@/components/checkouts/CheckoutCard";
 import { CustomerDashboardLayout } from "@/components/layout/CustomerDashboardLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { EmailVerificationBanner } from "@/components/auth/EmailVerificationBanner";
 import { CTAButton } from "@/components/ui/button-variants";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,15 +17,14 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user, isAuthenticated, isStaff } = useAuth();
   const { data: checkoutsData, isLoading: checkoutsLoading } = useMyCheckouts(1, 5, "active");
-  const { data: booksData } = useBooks(1, 5);
+  const { data: booksData, isLoading: booksLoading } = useBooks(1, 5);
 
   // Check if user is staff/admin and redirect to admin dashboard
   React.useEffect(() => {
     if (isAuthenticated && isStaff && router.pathname === "/dashboard") {
-      // Optionally redirect staff to admin dashboard, or let them choose
-      // For now, we'll show customer dashboard but they can navigate to admin
+      router.push("/admin/dashboard");
     }
-  }, [isAuthenticated, isStaff, router.pathname]);
+  }, [isAuthenticated, isStaff, router]);
 
   if (!isAuthenticated) {
     return (
@@ -53,6 +53,7 @@ export default function DashboardPage() {
           ) : undefined
         }
       />
+      <EmailVerificationBanner />
       <div className="space-y-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -126,7 +127,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Books */}
-        {recentBooks.length > 0 && (
+        {booksLoading ? (
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-semibold text-foreground">Recently Added Books</h2>
@@ -135,23 +136,39 @@ export default function DashboardPage() {
               </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {recentBooks.map((book: BookWithRelations) => (
-                <Card key={book.id}>
-                  <CardHeader>
-                    <CardTitle className="line-clamp-2">{book.title}</CardTitle>
-                    <CardDescription>by {book.author}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Link href={`/books/${book.id}`}>
-                      <CTAButton size="sm" className="w-full">
-                        View Details
-                      </CTAButton>
-                    </Link>
-                  </CardContent>
-                </Card>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-48" />
               ))}
             </div>
           </div>
+        ) : (
+          recentBooks.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-semibold text-foreground">Recently Added Books</h2>
+                <Link href="/books">
+                  <CTAButton variant="outline">View All</CTAButton>
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {recentBooks.map((book: BookWithRelations) => (
+                  <Card key={book.id}>
+                    <CardHeader>
+                      <CardTitle className="line-clamp-2">{book.title}</CardTitle>
+                      <CardDescription>by {book.author}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Link href={`/books/${book.id}`}>
+                        <CTAButton size="sm" className="w-full">
+                          View Details
+                        </CTAButton>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )
         )}
       </div>
     </CustomerDashboardLayout>

@@ -1,8 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/server/prisma";
+import { sendWelcomeEmail, sendVerificationEmail } from "@/lib/server/email";
 import bcrypt from "bcryptjs";
 import { HttpStatusCodes } from "@/lib/server/errors";
 import * as z from "zod";
+import crypto from "crypto";
 
 const registerSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -58,12 +60,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Create user with Customer role ONLY
     // Staff roles must be assigned by admins through the admin panel
+    // Customers must verify their email before checking out books
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
         isStaff: false, // Public registration always creates customers
+        emailVerified: null, // Customers must verify their email
         roles: {
           create: {
             roleId: customerRole.id,
@@ -77,8 +81,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const expires = new Date();
+    expires.setHours(expires.getHours() + 24); // Token expires in 24 hours
+
+    // Create verification token
+    await prisma.verificationToken.create({
+      data: {
+        identifier: email,
+        token: verificationToken,
+        expires,
+      },
+    });
+
+    // Send welcome and verification emails (non-blocking - graceful degradation)
+    Promise.all([
+      sendWelcomeEmail({
+        email: user.email!,
+        name: user.name || "User",
+      }),
+      sendVerificationEmail({
+        email: user.email!,
+        name: user.name || "User",
+        token: verificationToken,
+      }),
+    ]).catch((error) => {
+      console.error("Failed to send registration emails:", error);
+      // Don't fail the request if email fails
+    });
+
     return res.status(HttpStatusCodes.CREATED).json({
-      message: "User created successfully",
+      message: "User created successfully. Please check your email to verify your account.",
       user,
     });
   } catch (error) {

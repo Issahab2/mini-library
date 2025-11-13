@@ -1,18 +1,18 @@
 // pages/api/auth/[...nextauth].ts
+import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, NEXTAUTH_SECRET } from "@/lib/server/constants/env";
 import { prisma } from "@/lib/server/prisma";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import NextAuth, { AuthOptions } from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
-import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import NextAuth, { AuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 
 export const authOptions: AuthOptions = {
-  // Use adapter for OAuth providers, but JWT for credentials
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: GOOGLE_CLIENT_ID!,
+      clientSecret: GOOGLE_CLIENT_SECRET!,
     }),
     CredentialsProvider({
       name: "Credentials",
@@ -47,7 +47,6 @@ export const authOptions: AuthOptions = {
         };
       },
     }),
-    // Add GitHubProvider here...
   ],
   pages: {
     signIn: "/auth/signin",
@@ -57,8 +56,84 @@ export const authOptions: AuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: NEXTAUTH_SECRET,
   callbacks: {
+    async signIn({ user, account }) {
+      // If signing in with OAuth (Google)
+      if (account?.provider === "google" && user.email) {
+        // Check if a user with this email already exists
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email },
+          include: { accounts: true },
+        });
+
+        if (existingUser) {
+          // Check if Google account is already linked
+          const hasGoogleAccount = existingUser.accounts.some(
+            (acc) => acc.provider === "google" && acc.providerAccountId === account.providerAccountId
+          );
+
+          if (!hasGoogleAccount) {
+            // Link the Google account to the existing user
+            await prisma.account.create({
+              data: {
+                userId: existingUser.id,
+                type: account.type,
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                refresh_token: account.refresh_token,
+                access_token: account.access_token,
+                expires_at: account.expires_at,
+                token_type: account.token_type,
+                scope: account.scope,
+                id_token: account.id_token,
+                session_state: account.session_state,
+              },
+            });
+          }
+
+          // Check if user has any roles, if not assign Customer role
+          const userWithRoles = await prisma.user.findUnique({
+            where: { id: existingUser.id },
+            include: { roles: true },
+          });
+
+          if (!userWithRoles || userWithRoles.roles.length === 0) {
+            // User has no roles, assign Customer role
+            const customerRole = await prisma.role.findUnique({
+              where: { name: "Customer" },
+            });
+
+            if (customerRole) {
+              await prisma.rolesOnUsers.create({
+                data: {
+                  userId: existingUser.id,
+                  roleId: customerRole.id,
+                },
+              });
+            }
+          }
+
+          // Update user info if needed (name, image from Google)
+          // Automatically verify email for OAuth sign-ins
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: {
+              name: user.name || existingUser.name,
+              image: user.image || existingUser.image,
+              emailVerified: new Date(), // Always verify email for OAuth sign-ins
+            },
+          });
+
+          // Return the existing user ID so NextAuth uses the existing account
+          user.id = existingUser.id;
+        } else {
+          // For new users, the adapter will create them
+        }
+      }
+
+      return true;
+    },
     async jwt({ token, user, account }) {
       // Initial sign in
       if (user) {
@@ -67,18 +142,52 @@ export const authOptions: AuthOptions = {
         token.name = user.name;
         token.image = user.image;
 
-        // Fetch isStaff flag from database for credentials provider
+        // Fetch isStaff flag and permissions from database for credentials provider
         if (!account) {
           const dbUser = await prisma.user.findUnique({
             where: { id: user.id },
-            select: { isStaff: true },
+            include: {
+              roles: {
+                include: {
+                  role: {
+                    include: {
+                      permissions: {
+                        include: {
+                          permission: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
           });
           token.isStaff = dbUser?.isStaff || false;
+          token.emailVerified = dbUser?.emailVerified || null;
+
+          // Load permissions for credentials users
+          const permissions = new Set<string>();
+          dbUser?.roles.forEach((roleOnUser) => {
+            roleOnUser.role.permissions.forEach((permOnRole) => {
+              permissions.add(permOnRole.permission.action);
+            });
+          });
+          token.permissions = Array.from(permissions);
+          token.roles = dbUser?.roles.map((r) => r.role.name) || [];
         }
       }
 
       // For OAuth providers, fetch user roles on first sign in
       if (account && user) {
+        // Automatically verify email for OAuth sign-ins (new or existing users)
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            emailVerified: new Date(),
+          },
+        });
+
+        // Check if user has any roles, if not assign Customer role (for new OAuth users)
         const userWithRoles = await prisma.user.findUnique({
           where: { id: user.id },
           include: {
@@ -98,16 +207,71 @@ export const authOptions: AuthOptions = {
           },
         });
 
-        const permissions = new Set<string>();
-        userWithRoles?.roles.forEach((roleOnUser) => {
-          roleOnUser.role.permissions.forEach((permOnRole) => {
-            permissions.add(permOnRole.permission.action);
+        // If user has no roles, assign Customer role
+        if (!userWithRoles || userWithRoles.roles.length === 0) {
+          const customerRole = await prisma.role.findUnique({
+            where: { name: "Customer" },
           });
-        });
 
-        token.permissions = Array.from(permissions);
-        token.roles = userWithRoles?.roles.map((r) => r.role.name) || [];
-        token.isStaff = userWithRoles?.isStaff || false;
+          if (customerRole) {
+            await prisma.rolesOnUsers.create({
+              data: {
+                userId: user.id,
+                roleId: customerRole.id,
+              },
+            });
+
+            // Re-fetch user with roles after assignment
+            const updatedUser = await prisma.user.findUnique({
+              where: { id: user.id },
+              include: {
+                roles: {
+                  include: {
+                    role: {
+                      include: {
+                        permissions: {
+                          include: {
+                            permission: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            });
+
+            const permissions = new Set<string>();
+            updatedUser?.roles.forEach((roleOnUser) => {
+              roleOnUser.role.permissions.forEach((permOnRole) => {
+                permissions.add(permOnRole.permission.action);
+              });
+            });
+
+            token.permissions = Array.from(permissions);
+            token.roles = updatedUser?.roles.map((r) => r.role.name) || [];
+            token.isStaff = updatedUser?.isStaff || false;
+            token.emailVerified = updatedUser?.emailVerified || null;
+          } else {
+            // Customer role not found, set empty permissions
+            token.permissions = [];
+            token.roles = [];
+            token.isStaff = false;
+          }
+        } else {
+          // User already has roles, load them
+          const permissions = new Set<string>();
+          userWithRoles.roles.forEach((roleOnUser) => {
+            roleOnUser.role.permissions.forEach((permOnRole) => {
+              permissions.add(permOnRole.permission.action);
+            });
+          });
+
+          token.permissions = Array.from(permissions);
+          token.roles = userWithRoles.roles.map((r) => r.role.name) || [];
+          token.isStaff = userWithRoles.isStaff || false;
+          token.emailVerified = userWithRoles.emailVerified || null;
+        }
       }
 
       return token;
@@ -125,6 +289,7 @@ export const authOptions: AuthOptions = {
         where: { id: userId },
         select: {
           isStaff: true,
+          emailVerified: true,
           roles: {
             include: {
               role: {
@@ -159,6 +324,8 @@ export const authOptions: AuthOptions = {
         session.user.image = token.image as string;
         // Use isStaff from token if available, otherwise from database
         session.user.isStaff = (token.isStaff as boolean | undefined) ?? userWithRoles?.isStaff ?? false;
+        session.user.emailVerified =
+          (token.emailVerified as Date | null | undefined) ?? userWithRoles?.emailVerified ?? null;
       }
 
       return session;

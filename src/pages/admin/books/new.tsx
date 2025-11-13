@@ -55,12 +55,15 @@ export default function NewBookPage() {
 
   return (
     <AdminDashboardLayout>
-      <PageHeader
-        title="Create New Book"
-        description="Add a new book to the library"
+      <PageHeader title="Create New Book" description="Add a new book to the library" />
+      <BookForm
+        onSubmit={handleSubmit}
+        isLoading={createMutation.isPending}
+        onAIGenerate={() => {
+          // AI data is already populated in the form, just show success
+          toast.success("AI data generated! Review and adjust as needed.");
+        }}
       />
-      <BookForm onSubmit={handleSubmit} isLoading={createMutation.isPending} />
     </AdminDashboardLayout>
   );
 }
-

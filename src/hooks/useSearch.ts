@@ -4,7 +4,7 @@ import type { BookSearchFilters } from "@/lib/server/types";
 const API_BASE = "/api/books";
 
 // Search books with filters
-export function useBookSearch(filters: BookSearchFilters, page = 1, limit = 20) {
+export function useBookSearch(filters: BookSearchFilters, page = 1, limit = 20, enabled = false) {
   return useQuery({
     queryKey: ["book-search", filters, page, limit],
     queryFn: async () => {
@@ -25,7 +25,6 @@ export function useBookSearch(filters: BookSearchFilters, page = 1, limit = 20) 
       if (!res.ok) throw new Error("Failed to search books");
       return res.json();
     },
-    enabled: Object.keys(filters).length > 0,
+    enabled: enabled && Object.keys(filters).length > 0,
   });
 }
-

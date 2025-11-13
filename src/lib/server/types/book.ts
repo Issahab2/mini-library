@@ -20,6 +20,7 @@ export interface CreateBookInput {
   publisher?: string;
   publicationYear?: number;
   genre?: string;
+  tags?: string[];
   pageCount?: number;
   language?: string;
   coverImageUrl?: string;

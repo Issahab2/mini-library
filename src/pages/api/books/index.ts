@@ -75,6 +75,7 @@ export default createMethodAuthHandler(
       }
 
       try {
+        // Merge user data with AI-enriched data (user data takes precedence)
         const book = await prisma.book.create({
           data: {
             title: data.title,
@@ -85,6 +86,7 @@ export default createMethodAuthHandler(
             publisher: data.publisher,
             publicationYear: data.publicationYear,
             genre: data.genre,
+            tags: data.tags,
             pageCount: data.pageCount,
             language: data.language,
             coverImageUrl: data.coverImageUrl,

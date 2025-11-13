@@ -2,6 +2,7 @@ import { BookList } from "@/components/books/BookList";
 import { CheckoutList } from "@/components/checkouts/CheckoutList";
 import { AdminDashboardLayout } from "@/components/layout/AdminDashboardLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { EmailVerificationBanner } from "@/components/auth/EmailVerificationBanner";
 import { CTAButton } from "@/components/ui/button-variants";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -51,6 +52,7 @@ export default function AdminDashboardPage() {
         title="Admin Dashboard"
         description={`Welcome back, ${user?.name || "Admin"}! Manage your library operations.`}
       />
+      <EmailVerificationBanner />
       <div className="space-y-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

@@ -1,3 +1,4 @@
+import { ADMIN_EMAIL, ADMIN_NAME, ADMIN_PASSWORD } from "../src/lib/server/constants/env";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
@@ -6,130 +7,116 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Starting seed...");
 
-  // Clear existing data (optional - comment out if you want to keep existing data)
-  await prisma.checkout.deleteMany();
-  await prisma.chapter.deleteMany();
-  await prisma.book.deleteMany();
-  await prisma.permissionsOnRoles.deleteMany();
-  await prisma.rolesOnUsers.deleteMany();
-  await prisma.permission.deleteMany();
-  await prisma.role.deleteMany();
-  await prisma.user.deleteMany();
+  // 1. Upsert Permissions
+  console.log("📝 Upserting permissions...");
+  const permissionData = [
+    { action: "book:read", description: "Read books" },
+    { action: "book:create", description: "Create books" },
+    { action: "book:update", description: "Update books" },
+    { action: "book:delete", description: "Delete books" },
+    { action: "checkout:create", description: "Create checkouts" },
+    { action: "checkout:return", description: "Return checkouts" },
+    { action: "checkout:manage", description: "Manage all checkouts" },
+    { action: "user:manage", description: "Manage users" },
+    { action: "role:manage", description: "Manage roles" },
+    { action: "permission:manage", description: "Manage permissions" },
+    { action: "finance:manage", description: "Manage finances" },
+  ];
 
-  // 1. Create Permissions
-  console.log("📝 Creating permissions...");
-  const permissions = await Promise.all([
-    prisma.permission.create({ data: { action: "book:read", description: "Read books" } }),
-    prisma.permission.create({ data: { action: "book:create", description: "Create books" } }),
-    prisma.permission.create({ data: { action: "book:update", description: "Update books" } }),
-    prisma.permission.create({ data: { action: "book:delete", description: "Delete books" } }),
-    prisma.permission.create({ data: { action: "checkout:create", description: "Create checkouts" } }),
-    prisma.permission.create({ data: { action: "checkout:return", description: "Return checkouts" } }),
-    prisma.permission.create({ data: { action: "checkout:manage", description: "Manage all checkouts" } }),
-    prisma.permission.create({ data: { action: "user:manage", description: "Manage users" } }),
-    prisma.permission.create({ data: { action: "finance:manage", description: "Manage finances" } }),
-  ]);
+  const permissions = await Promise.all(
+    permissionData.map((data) =>
+      prisma.permission.upsert({
+        where: { action: data.action },
+        update: { description: data.description },
+        create: data,
+      })
+    )
+  );
 
-  const [
-    bookRead,
-    bookCreate,
-    bookUpdate,
-    bookDelete,
-    checkoutCreate,
-    checkoutReturn,
-    checkoutManage,
-    userManage,
-    financeManage,
-  ] = permissions;
+  const [bookRead, bookCreate, bookUpdate, checkoutCreate, checkoutReturn, checkoutManage, financeManage] = permissions;
 
-  console.log(bookDelete, userManage);
-
-  // 2. Create Roles
-  console.log("👥 Creating roles...");
-  const adminRole = await prisma.role.create({
-    data: {
+  // 2. Upsert Roles
+  console.log("👥 Upserting roles...");
+  const adminRole = await prisma.role.upsert({
+    where: { name: "Admin" },
+    update: { description: "Full system access" },
+    create: {
       name: "Admin",
       description: "Full system access",
     },
   });
 
-  const financeManagerRole = await prisma.role.create({
-    data: {
+  const financeManagerRole = await prisma.role.upsert({
+    where: { name: "Finance Manager" },
+    update: { description: "Manages finances and checkouts" },
+    create: {
       name: "Finance Manager",
       description: "Manages finances and checkouts",
     },
   });
 
-  const editorRole = await prisma.role.create({
-    data: {
+  const editorRole = await prisma.role.upsert({
+    where: { name: "Editor" },
+    update: { description: "Manages book content" },
+    create: {
       name: "Editor",
       description: "Manages book content",
     },
   });
 
-  const customerRole = await prisma.role.create({
-    data: {
+  const customerRole = await prisma.role.upsert({
+    where: { name: "Customer" },
+    update: { description: "Standard library user" },
+    create: {
       name: "Customer",
       description: "Standard library user",
     },
   });
 
-  // 3. Assign Permissions to Roles
-  console.log("🔗 Assigning permissions to roles...");
+  // 3. Upsert Role-Permission Relationships
+  console.log("🔗 Upserting role-permission relationships...");
 
   // Admin: All permissions
-  await Promise.all(
-    permissions.map((permission) =>
-      prisma.permissionsOnRoles.create({
-        data: {
-          roleId: adminRole.id,
-          permissionId: permission.id,
-        },
-      })
-    )
-  );
+  await prisma.permissionsOnRoles.createMany({
+    data: permissions.map((permission) => ({
+      roleId: adminRole.id,
+      permissionId: permission.id,
+    })),
+    skipDuplicates: true,
+  });
 
   // Finance Manager: book:read, checkout:manage, finance:manage
-  await Promise.all([
-    prisma.permissionsOnRoles.create({
-      data: { roleId: financeManagerRole.id, permissionId: bookRead.id },
-    }),
-    prisma.permissionsOnRoles.create({
-      data: { roleId: financeManagerRole.id, permissionId: checkoutManage.id },
-    }),
-    prisma.permissionsOnRoles.create({
-      data: { roleId: financeManagerRole.id, permissionId: financeManage.id },
-    }),
-  ]);
+  await prisma.permissionsOnRoles.createMany({
+    data: [
+      { roleId: financeManagerRole.id, permissionId: bookRead.id },
+      { roleId: financeManagerRole.id, permissionId: checkoutManage.id },
+      { roleId: financeManagerRole.id, permissionId: financeManage.id },
+    ],
+    skipDuplicates: true,
+  });
 
   // Editor: book:read, book:create, book:update
-  await Promise.all([
-    prisma.permissionsOnRoles.create({
-      data: { roleId: editorRole.id, permissionId: bookRead.id },
-    }),
-    prisma.permissionsOnRoles.create({
-      data: { roleId: editorRole.id, permissionId: bookCreate.id },
-    }),
-    prisma.permissionsOnRoles.create({
-      data: { roleId: editorRole.id, permissionId: bookUpdate.id },
-    }),
-  ]);
+  await prisma.permissionsOnRoles.createMany({
+    data: [
+      { roleId: editorRole.id, permissionId: bookRead.id },
+      { roleId: editorRole.id, permissionId: bookCreate.id },
+      { roleId: editorRole.id, permissionId: bookUpdate.id },
+    ],
+    skipDuplicates: true,
+  });
 
   // Customer: book:read, checkout:create, checkout:return
-  await Promise.all([
-    prisma.permissionsOnRoles.create({
-      data: { roleId: customerRole.id, permissionId: bookRead.id },
-    }),
-    prisma.permissionsOnRoles.create({
-      data: { roleId: customerRole.id, permissionId: checkoutCreate.id },
-    }),
-    prisma.permissionsOnRoles.create({
-      data: { roleId: customerRole.id, permissionId: checkoutReturn.id },
-    }),
-  ]);
+  await prisma.permissionsOnRoles.createMany({
+    data: [
+      { roleId: customerRole.id, permissionId: bookRead.id },
+      { roleId: customerRole.id, permissionId: checkoutCreate.id },
+      { roleId: customerRole.id, permissionId: checkoutReturn.id },
+    ],
+    skipDuplicates: true,
+  });
 
-  // 4. Create Sample Books with Chapters
-  console.log("📚 Creating books...");
+  // 4. Upsert Sample Books with Chapters
+  console.log("📚 Upserting books...");
 
   const books = [
     {
@@ -296,11 +283,33 @@ async function main() {
 
   for (const bookData of books) {
     const { chapters, ...bookFields } = bookData;
-    const book = await prisma.book.create({
-      data: bookFields,
+
+    // Upsert book by ISBN
+    const book = await prisma.book.upsert({
+      where: { isbn: bookFields.isbn! },
+      update: {
+        title: bookFields.title,
+        author: bookFields.author,
+        description: bookFields.description,
+        summary: bookFields.summary,
+        publisher: bookFields.publisher,
+        publicationYear: bookFields.publicationYear,
+        genre: bookFields.genre,
+        pageCount: bookFields.pageCount,
+        language: bookFields.language,
+        coverImageUrl: bookFields.coverImageUrl,
+      },
+      create: bookFields,
     });
 
+    // Upsert chapters for this book
     if (chapters && chapters.length > 0) {
+      // Delete existing chapters for this book to avoid duplicates
+      // Then recreate them (this ensures chapters stay in sync with seed data)
+      await prisma.chapter.deleteMany({
+        where: { bookId: book.id },
+      });
+
       await Promise.all(
         chapters.map((chapter) =>
           prisma.chapter.create({
@@ -314,38 +323,70 @@ async function main() {
     }
   }
 
-  // 5. Create Sample Users
-  console.log("👤 Creating users...");
+  // 5. Upsert Admin User
+  console.log("👤 Upserting admin user...");
 
-  // Create admin user from environment variables
-  const adminEmail = process.env.ADMIN_EMAIL || "admin@library.com";
-  const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
-  const adminName = process.env.ADMIN_NAME || "Admin User";
+  const adminEmail = ADMIN_EMAIL;
+  const adminPassword = ADMIN_PASSWORD;
+  const adminName = ADMIN_NAME;
+
+  // Check if admin user exists
+  const existingAdmin = await prisma.user.findUnique({
+    where: { email: adminEmail },
+    include: { roles: true },
+  });
 
   const hashedAdminPassword = await bcrypt.hash(adminPassword, 10);
 
-  await prisma.user.create({
-    data: {
-      name: adminName,
-      email: adminEmail,
-      password: hashedAdminPassword,
-      maxCheckoutLimit: 10,
-      isStaff: true, // Admin is staff
-      roles: {
-        create: {
+  if (existingAdmin) {
+    // Update existing admin user
+    await prisma.user.update({
+      where: { email: adminEmail },
+      data: {
+        name: adminName,
+        password: hashedAdminPassword,
+        maxCheckoutLimit: 10,
+        isStaff: true,
+      },
+    });
+
+    // Ensure admin role is assigned
+    const hasAdminRole = existingAdmin.roles.some((r) => r.roleId === adminRole.id);
+    if (!hasAdminRole) {
+      await prisma.rolesOnUsers.create({
+        data: {
+          userId: existingAdmin.id,
           roleId: adminRole.id,
         },
-      },
-    },
-  });
+      });
+    }
 
-  console.log(`   ✓ Created admin user: ${adminEmail}`);
+    console.log(`   ✓ Updated admin user: ${adminEmail}`);
+  } else {
+    // Create new admin user
+    await prisma.user.create({
+      data: {
+        name: adminName,
+        email: adminEmail,
+        password: hashedAdminPassword,
+        maxCheckoutLimit: 10,
+        isStaff: true,
+        roles: {
+          create: {
+            roleId: adminRole.id,
+          },
+        },
+      },
+    });
+
+    console.log(`   ✓ Created admin user: ${adminEmail}`);
+  }
 
   console.log("✅ Seed completed successfully!");
-  console.log(`   - Created ${permissions.length} permissions`);
-  console.log(`   - Created 4 roles`);
-  console.log(`   - Created ${books.length} books with chapters`);
-  console.log(`   - Created 5 sample users`);
+  console.log(`   - Upserted ${permissions.length} permissions`);
+  console.log(`   - Upserted 4 roles`);
+  console.log(`   - Upserted ${books.length} books with chapters`);
+  console.log(`   - Upserted admin user`);
 }
 
 main()

@@ -1,12 +1,5 @@
 import * as React from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { OverdueBadge } from "./OverdueBadge";
 import { CTAButton } from "@/components/ui/button-variants";
@@ -20,9 +13,17 @@ interface CheckoutListProps {
   isLoading?: boolean;
   showUser?: boolean;
   canReturn?: boolean;
+  returningCheckoutId?: string | null;
 }
 
-export function CheckoutList({ checkouts, onReturn, isLoading = false, showUser = false, canReturn = true }: CheckoutListProps) {
+export function CheckoutList({
+  checkouts,
+  onReturn,
+  isLoading = false,
+  showUser = false,
+  canReturn = true,
+  returningCheckoutId = null,
+}: CheckoutListProps) {
   if (isLoading) {
     return (
       <div className="space-y-2">
@@ -100,8 +101,12 @@ export function CheckoutList({ checkouts, onReturn, isLoading = false, showUser 
                 {onReturn && (
                   <TableCell>
                     {!isReturned && canReturn && (
-                      <CTAButton size="sm" onClick={() => onReturn(checkout.id)}>
-                        Return
+                      <CTAButton
+                        size="sm"
+                        onClick={() => onReturn(checkout.id)}
+                        disabled={returningCheckoutId === checkout.id}
+                      >
+                        {returningCheckoutId === checkout.id ? "Returning..." : "Return"}
                       </CTAButton>
                     )}
                   </TableCell>
@@ -114,4 +119,3 @@ export function CheckoutList({ checkouts, onReturn, isLoading = false, showUser 
     </div>
   );
 }
-

@@ -67,17 +67,18 @@ export default function EditBookPage() {
 
   return (
     <AdminDashboardLayout>
-      <PageHeader
-        title="Edit Book"
-        description="Update book information"
-      />
+      <PageHeader title="Edit Book" description="Update book information" />
       <BookForm
         initialData={data.book}
         onSubmit={handleSubmit}
         onCancel={handleCancel}
         isLoading={updateMutation.isPending}
+        bookId={id as string}
+        onAIGenerate={() => {
+          // Refresh the book data after enrichment
+          router.replace(router.asPath);
+        }}
       />
     </AdminDashboardLayout>
   );
 }
-

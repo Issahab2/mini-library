@@ -1,16 +1,15 @@
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getServerSession } from "next-auth";
 import type { Session } from "next-auth";
-import type { AuthenticatedUser, AuthMiddlewareOptions } from "./types/auth";
+import { getServerSession } from "next-auth";
 import {
-  createUnauthorizedError,
+  createAuthError,
   createInvalidSessionError,
   createMissingPermissionsError,
   createMissingRolesError,
-  createAuthError,
-  HttpStatusCodes,
+  createUnauthorizedError,
 } from "./errors";
+import type { AuthenticatedUser, AuthMiddlewareOptions } from "./types/auth";
 
 /**
  * Method-based authentication configuration
@@ -29,11 +28,11 @@ export interface MethodAuthContext {
 
 /**
  * Creates an API handler with method-based authentication requirements
- * 
+ *
  * @param handler - Your API route handler function
  * @param methodConfig - Configuration for each HTTP method's auth requirements
  * @returns Wrapped handler function
- * 
+ *
  * @example
  * export default createMethodAuthHandler(
  *   async (req, res, { user, session }) => {
@@ -53,11 +52,7 @@ export interface MethodAuthContext {
  * );
  */
 export function createMethodAuthHandler(
-  handler: (
-    req: NextApiRequest,
-    res: NextApiResponse,
-    context: MethodAuthContext
-  ) => Promise<void> | void,
+  handler: (req: NextApiRequest, res: NextApiResponse, context: MethodAuthContext) => Promise<void> | void,
   methodConfig: MethodAuthConfig
 ) {
   return async (req: NextApiRequest, res: NextApiResponse): Promise<void> => {
@@ -169,4 +164,3 @@ export function createMethodAuthHandler(
     }
   };
 }
-

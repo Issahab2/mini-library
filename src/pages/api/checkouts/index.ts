@@ -1,7 +1,8 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { prisma, createMethodAuthHandler, createCheckout } from "@/lib/server";
+import { createCheckout, createMethodAuthHandler, prisma } from "@/lib/server";
+import { CheckoutErrorCodes, HttpStatusCodes } from "@/lib/server/errors";
 import type { CreateCheckoutInput } from "@/lib/server/types";
-import { createCheckoutNotFoundError, HttpStatusCodes, CheckoutErrorCodes } from "@/lib/server/errors";
+import { Prisma } from "@prisma/client";
+import type { NextApiRequest, NextApiResponse } from "next";
 
 // GET /api/checkouts - List all checkouts (requires checkout:manage permission)
 // POST /api/checkouts - Create a new checkout (requires checkout:create permission) - AUTH REQUIRED
@@ -21,7 +22,7 @@ export default createMethodAuthHandler(
       const limitNum = parseInt(limit as string, 10);
       const skip = (pageNum - 1) * limitNum;
 
-      const where: any = {};
+      const where: Prisma.CheckoutWhereInput = {};
       if (status === "active") {
         where.returnedDate = null;
       } else if (status === "returned") {

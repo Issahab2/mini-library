@@ -93,7 +93,7 @@ export default function AdminBooksPage() {
           canCreate ? <CTAButton onClick={() => router.push("/admin/books/new")}>Create New Book</CTAButton> : null
         }
       />
-      <div className="rounded-md border border-border">
+      <div className="rounded-md border border-border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>

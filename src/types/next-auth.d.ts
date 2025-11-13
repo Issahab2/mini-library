@@ -10,6 +10,7 @@ declare module "next-auth" {
       permissions: string[];
       roles: string[];
       isStaff: boolean;
+      emailVerified?: Date | null;
     };
   }
 
@@ -21,5 +22,6 @@ declare module "next-auth" {
     permissions: string[];
     roles: string[];
     isStaff: boolean;
+    emailVerified?: Date | null;
   }
 }

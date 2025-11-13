@@ -1,11 +1,8 @@
+import type { Checkout } from "@prisma/client";
+import { createBookAlreadyCheckedOutError, createCheckoutLimitExceededError } from "./errors";
 import { prisma } from "./prisma";
-import type { Checkout, Book, User } from "@prisma/client";
+import { cancelCheckoutReminder, scheduleCheckoutReminder } from "./qstash";
 import type { CheckoutValidationResult, CreateCheckoutInput } from "./types/checkout";
-import {
-  createCheckoutLimitExceededError,
-  createBookUnavailableError,
-  createBookAlreadyCheckedOutError,
-} from "./errors";
 
 /**
  * Validates if a user can checkout a book
@@ -28,6 +25,14 @@ export async function validateCheckout(userId: string, bookId: string): Promise<
     return {
       valid: false,
       error: "User not found",
+    };
+  }
+
+  // Check email verification for customers (staff bypass this check)
+  if (!user.isStaff && !user.emailVerified) {
+    return {
+      valid: false,
+      error: "Please verify your email address before checking out books. Check your email for a verification link.",
     };
   }
 
@@ -242,6 +247,27 @@ export async function createCheckout(input: CreateCheckoutInput) {
     return checkout;
   });
 
+  // Schedule QStash reminder 1 day before due date (non-blocking - graceful degradation)
+  scheduleCheckoutReminder(result.id, result.dueDate)
+    .then((messageId) => {
+      if (messageId) {
+        // Update checkout with QStash message ID
+        prisma.checkout
+          .update({
+            where: { id: result.id },
+            data: { qstashMessageId: messageId },
+          })
+          .catch((error) => {
+            console.error("Failed to update checkout with QStash message ID:", error);
+            // Don't fail if this update fails
+          });
+      }
+    })
+    .catch((error) => {
+      console.error("Failed to schedule checkout reminder:", error);
+      // Don't fail the checkout creation if reminder scheduling fails
+    });
+
   return result;
 }
 
@@ -298,6 +324,14 @@ export async function returnCheckout(checkoutId: string) {
 
     return updatedCheckout;
   });
+
+  // Cancel QStash reminder if one was scheduled (non-blocking - graceful degradation)
+  if (checkout.qstashMessageId) {
+    cancelCheckoutReminder(checkout.qstashMessageId).catch((error) => {
+      console.error("Failed to cancel checkout reminder:", error);
+      // Don't fail the return operation if cancellation fails
+    });
+  }
 
   return result;
 }

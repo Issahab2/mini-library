@@ -1,8 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma, createAuthHandler } from "@/lib/server";
 import { HttpStatusCodes } from "@/lib/server/errors";
+import { sendStaffInvitationEmail, sendWelcomeEmail, sendVerificationEmail } from "@/lib/server/email";
+import { APP_URL } from "@/lib/server/constants/env";
 import bcrypt from "bcryptjs";
 import * as z from "zod";
+import crypto from "crypto";
 
 const inviteUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -70,7 +73,13 @@ export default createAuthHandler(
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
+      // Generate verification token if email needs verification
+      const verificationToken = crypto.randomBytes(32).toString("hex");
+      const expires = new Date();
+      expires.setHours(expires.getHours() + 24); // Token expires in 24 hours
+
       // Create user with the specified role
+      // Staff users need to verify their email (not pre-verified)
       const newUser = await prisma.user.create({
         data: {
           name,
@@ -78,6 +87,7 @@ export default createAuthHandler(
           password: hashedPassword,
           maxCheckoutLimit: 10, // Staff get higher limits,
           isStaff: true,
+          emailVerified: null, // Staff must verify their email
           roles: {
             create: {
               roleId: requestedRole.id,
@@ -88,6 +98,7 @@ export default createAuthHandler(
           id: true,
           name: true,
           email: true,
+          emailVerified: true,
           roles: {
             include: {
               role: {
@@ -98,6 +109,38 @@ export default createAuthHandler(
             },
           },
         },
+      });
+
+      // Create verification token
+      await prisma.verificationToken.create({
+        data: {
+          identifier: email,
+          token: verificationToken,
+          expires,
+        },
+      });
+
+      // Send welcome email, invitation email, and verification email (non-blocking - graceful degradation)
+      Promise.all([
+        sendWelcomeEmail({
+          email: newUser.email!,
+          name: newUser.name || "Staff Member",
+        }),
+        sendStaffInvitationEmail({
+          email: newUser.email!,
+          name: newUser.name || "Staff Member",
+          role: role,
+          password: password, // Send plain password for first login
+          invitationLink: `${APP_URL}/auth/signin`,
+        }),
+        sendVerificationEmail({
+          email: newUser.email!,
+          name: newUser.name || "Staff Member",
+          token: verificationToken,
+        }),
+      ]).catch((error) => {
+        console.error("Failed to send staff invitation emails:", error);
+        // Don't fail the request if email fails
       });
 
       return res.status(HttpStatusCodes.CREATED).json({

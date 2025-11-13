@@ -2,7 +2,7 @@ import { useSession } from "next-auth/react";
 import { useMemo } from "react";
 import type { User } from "@prisma/client";
 
-type UserWithPermissions = Pick<User, "id" | "name" | "email" | "image" | "isStaff"> & {
+type UserWithPermissions = Pick<User, "id" | "name" | "email" | "image" | "isStaff" | "emailVerified"> & {
   roles: string[];
   permissions: string[];
 };

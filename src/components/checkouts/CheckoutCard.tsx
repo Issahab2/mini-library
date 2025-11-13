@@ -10,9 +10,16 @@ interface CheckoutCardProps {
   onReturn?: (checkoutId: string) => void;
   showActions?: boolean;
   canReturn?: boolean;
+  returningCheckoutId?: string | null;
 }
 
-export function CheckoutCard({ checkout, onReturn, showActions = true, canReturn = true }: CheckoutCardProps) {
+export function CheckoutCard({
+  checkout,
+  onReturn,
+  showActions = true,
+  canReturn = true,
+  returningCheckoutId = null,
+}: CheckoutCardProps) {
   const isReturned = !!checkout.returnedDate;
   const isOverdue = checkout.isOverdue && !isReturned;
   const lateFeeAmount = checkout.lateFeeAmount ? Number(checkout.lateFeeAmount) : null;
@@ -70,8 +77,12 @@ export function CheckoutCard({ checkout, onReturn, showActions = true, canReturn
       </CardContent>
       {showActions && !isReturned && onReturn && canReturn && (
         <CardFooter>
-          <CTAButton onClick={() => onReturn(checkout.id)} className="w-full">
-            Return Book
+          <CTAButton
+            onClick={() => onReturn(checkout.id)}
+            className="w-full"
+            disabled={returningCheckoutId === checkout.id}
+          >
+            {returningCheckoutId === checkout.id ? "Returning..." : "Return Book"}
           </CTAButton>
         </CardFooter>
       )}

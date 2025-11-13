@@ -1,16 +1,16 @@
+import { PublicLayout } from "@/components/layout/PublicLayout";
 import { CTAButton, SecondaryButton } from "@/components/ui/button-variants";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Library, ArrowLeft, Mail } from "lucide-react";
-import { useRouter } from "next/router";
-import { useState } from "react";
-import { toast } from "sonner";
-import { useForm } from "react-hook-form";
+import { IS_DEVELOPMENT } from "@/lib/client/constants/env";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { ArrowLeft, Library, Mail } from "lucide-react";
 import Link from "next/link";
-import { PublicLayout } from "@/components/layout/PublicLayout";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import * as z from "zod";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -19,7 +19,6 @@ const forgotPasswordSchema = z.object({
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 export default function ForgotPasswordPage() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -53,8 +52,7 @@ export default function ForgotPasswordPage() {
       setIsSuccess(true);
       toast.success("If an account exists, a password reset link has been sent.");
 
-      // In development, show the reset URL if provided
-      if (result.resetUrl && process.env.NODE_ENV === "development") {
+      if (result.resetUrl && IS_DEVELOPMENT) {
         console.log("Reset URL:", result.resetUrl);
         toast.info(`Development: Reset URL is ${result.resetUrl}`);
       }

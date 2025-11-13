@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Library, ArrowLeft, Lock } from "lucide-react";
 import { useRouter } from "next/router";
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,14 +28,12 @@ export default function ResetPasswordPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
 
-  useEffect(() => {
-    const { token: queryToken } = router.query;
-    if (queryToken && typeof queryToken === "string") {
-      setToken(queryToken);
-    }
-  }, [router.query]);
+  const token = useMemo(() => {
+    if (!router.isReady) return null;
+    const queryToken = router.query.token;
+    return queryToken && typeof queryToken === "string" ? queryToken : null;
+  }, [router.isReady, router.query.token]);
 
   const {
     register,

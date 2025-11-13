@@ -11,8 +11,30 @@ import { BookStatus } from "@prisma/client";
 import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
+import { BookOpen } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+
+// Default book cover component
+function DefaultBookCover({ title, author }: { title: string; author?: string }) {
+  const initials = title
+    .split(" ")
+    .map((word) => word[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  return (
+    <div className="relative w-full h-full bg-linear-to-br from-primary/20 to-primary/5 dark:from-primary/30 dark:to-primary/10 flex items-center justify-center">
+      <div className="flex flex-col items-center justify-center gap-2 text-center p-4">
+        <BookOpen className="size-16 text-primary/60 dark:text-primary/80" />
+        <div className="text-2xl font-bold text-foreground/80">{initials}</div>
+        {author && <div className="text-xs text-muted-foreground line-clamp-1">{author}</div>}
+      </div>
+    </div>
+  );
+}
 
 export default function BookDetailsPage() {
   const router = useRouter();
@@ -22,8 +44,14 @@ export default function BookDetailsPage() {
   const checkoutMutation = useCheckoutBook();
 
   const book = data?.book;
+  const [imageError, setImageError] = React.useState(false);
+
+  // Consolidate missing data with fallbacks
+  const title = book?.title || "Untitled Book";
+  const author = book?.author || "Unknown Author";
   const isAvailable = book?.status === BookStatus.AVAILABLE;
   const canCheckout = isAuthenticated && hasPermission("checkout:create");
+  const hasCoverImage = Boolean(book?.coverImageUrl) && !imageError;
 
   const handleCheckout = async () => {
     if (!book) return;
@@ -31,12 +59,12 @@ export default function BookDetailsPage() {
       toast.error("Please sign in to checkout books");
       return;
     }
-    if (!hasPermission("checkout:create")) {
+    if (!canCheckout) {
       toast.error("You do not have permission to checkout books");
       return;
     }
     try {
-      await checkoutMutation.mutateAsync({ bookId: book.id }); // userId will be set by API from session
+      await checkoutMutation.mutateAsync({ bookId: book.id });
       toast.success("Book checked out successfully!");
       router.push("/dashboard/checkouts");
     } catch (error) {
@@ -80,8 +108,8 @@ export default function BookDetailsPage() {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle className="text-3xl">{book.title}</CardTitle>
-                    <CardDescription className="text-lg mt-2">by {book.author}</CardDescription>
+                    <CardTitle className="text-3xl">{title}</CardTitle>
+                    <CardDescription className="text-lg mt-2">by {author}</CardDescription>
                   </div>
                   <Badge variant={isAvailable ? "default" : "secondary"}>
                     {isAvailable ? "Available" : "Checked Out"}
@@ -89,17 +117,22 @@ export default function BookDetailsPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {book.coverImageUrl && (
-                  <div className="relative w-full h-96 bg-muted rounded-lg overflow-hidden">
+                {/* Book Cover - Always show, either image or default */}
+                <div className="relative w-full h-96 bg-muted rounded-lg overflow-hidden">
+                  {hasCoverImage ? (
                     <Image
-                      src={book.coverImageUrl}
-                      alt={book.title}
+                      src={book.coverImageUrl!}
+                      alt={`${title} cover`}
                       fill
                       className="object-cover"
                       sizes="(max-width: 768px) 100vw, 66vw"
+                      onError={() => setImageError(true)}
                     />
-                  </div>
-                )}
+                  ) : (
+                    <DefaultBookCover title={title} author={author} />
+                  )}
+                </div>
+                {/* Book Details Grid */}
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   {book.isbn && (
                     <div>
@@ -121,7 +154,7 @@ export default function BookDetailsPage() {
                       <span className="font-medium">Genre:</span> {book.genre}
                     </div>
                   )}
-                  {book.pageCount && (
+                  {book.pageCount > 0 && (
                     <div>
                       <span className="font-medium">Pages:</span> {book.pageCount}
                     </div>
@@ -132,12 +165,30 @@ export default function BookDetailsPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Tags */}
+                {book.tags && book.tags.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold mb-2">Tags</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {book.tags.map((tag: string, index: number) => (
+                        <Badge key={index} variant="outline">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Description */}
                 {book.description && (
                   <div>
                     <h3 className="font-semibold mb-2">Description</h3>
                     <p className="text-muted-foreground">{book.description}</p>
                   </div>
                 )}
+
+                {/* Summary */}
                 {book.summary && (
                   <div>
                     <h3 className="font-semibold mb-2">Summary</h3>

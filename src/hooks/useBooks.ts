@@ -1,5 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { BookWithRelations, CreateBookInput, UpdateBookInput } from "@/lib/server/types";
+import type { CreateBookInput, UpdateBookInput } from "@/lib/server/types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 const API_BASE = "/api/books";
 
@@ -104,3 +104,25 @@ export function useDeleteBook() {
   });
 }
 
+// Enrich book with AI mutation
+export function useEnrichBook() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`${API_BASE}/${id}/enrich`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to enrich book");
+      }
+      return res.json();
+    },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+      queryClient.invalidateQueries({ queryKey: ["book", id] });
+    },
+  });
+}

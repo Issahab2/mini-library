@@ -12,6 +12,8 @@ export {
   returnCheckout,
 } from "./checkout";
 export { buildBookSearchQuery, buildGeneralBookSearchQuery } from "./search";
+export { isAIServiceAvailable, generateBookTags, generateBookSummary, enrichBookData } from "./ai";
+export type { BookTagsResult } from "./ai";
 
 // Re-export types
 export type { AuthenticatedUser, AuthMiddlewareOptions, AuthMiddlewareResult } from "./types";

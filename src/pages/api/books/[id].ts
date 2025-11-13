@@ -91,6 +91,7 @@ export default createMethodAuthHandler(
             ...(data.publisher !== undefined && { publisher: data.publisher }),
             ...(data.publicationYear !== undefined && { publicationYear: data.publicationYear }),
             ...(data.genre !== undefined && { genre: data.genre }),
+            ...(data.tags !== undefined && { tags: data.tags }),
             ...(data.pageCount !== undefined && { pageCount: data.pageCount }),
             ...(data.language !== undefined && { language: data.language }),
             ...(data.coverImageUrl !== undefined && { coverImageUrl: data.coverImageUrl }),
